@@ -1,0 +1,37 @@
+{
+  "name": "gulp-kissy-transport",
+  "description": "",
+  "version": "0.0.1",
+  "author": {
+    "name": "sprying",
+    "email": "sprying.fang@qq.com"
+  },
+  "bugs": {
+    "url": "https://github.com/terinjokes/gulp-uglify/issues"
+  },
+  "dependencies": {
+    "through2": ">=0.6.1 <1.0.0-0",
+    "extend":"~3.0.0"
+  },
+  "devDependencies": {
+  },
+  "engines": {
+    "node": ">= 0.9"
+  },
+  "homepage": "https://github.com/terinjokes/gulp-uglify/",
+  "keywords": [
+    "gulpplugin"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/terinjokes/gulp-uglify.git"
+  },
+  "maintainers": [
+    {
+      "name": "terinjokes",
+      "email": "terinjokes@gmail.com"
+    }
+  ]
+}
