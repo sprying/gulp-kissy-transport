@@ -1,13 +1,13 @@
 {
   "name": "gulp-kissy-transport",
-  "description": "",
-  "version": "0.0.1",
+  "description": "提取kissy深层依赖",
+  "version": "0.0.2",
   "author": {
     "name": "sprying",
     "email": "sprying.fang@qq.com"
   },
   "bugs": {
-    "url": "https://github.com/terinjokes/gulp-uglify/issues"
+    "url": "https://github.com/sprying/gulp-kissy-transport/issues"
   },
   "dependencies": {
     "through2": ">=0.6.1 <1.0.0-0",
@@ -18,7 +18,7 @@
   "engines": {
     "node": ">= 0.9"
   },
-  "homepage": "https://github.com/terinjokes/gulp-uglify/",
+  "homepage": "https://github.com/sprying/gulp-kissy-transport",
   "keywords": [
     "gulpplugin"
   ],
@@ -26,12 +26,6 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/terinjokes/gulp-uglify.git"
-  },
-  "maintainers": [
-    {
-      "name": "terinjokes",
-      "email": "terinjokes@gmail.com"
-    }
-  ]
+    "url": "git+https://github.com/sprying/gulp-kissy-transport.git"
+  }
 }
