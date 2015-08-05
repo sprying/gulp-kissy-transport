@@ -1,0 +1,9 @@
+KISSY.add('components/feature/util',function(S){
+    //..
+},{
+    requires:[
+        'node',
+        'io',
+        '../feature_2/'
+    ]
+})

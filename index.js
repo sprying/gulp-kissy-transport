@@ -4,10 +4,18 @@ var fs = require('fs');
 var through = require('through2');
 var managejs = require('managejs');
 var extend = require('extend');
-var Mod = require('./mod.js');
+var Mod = require('./libs/mod.js');
 
 module.exports = function (opts) {
-    var runCwd = path.normalize(opts.runCwd || './src/app');
+    var packagesMap = {}
+    var pkList = [];
+    (opts || []).forEach(function(item){
+        packagesMap[item.match(/[\w\-\_]+[\/]{0,1}$/)[0]] = path.normalize(item)
+        pkList.push(item.match(/\w[\s\S]*/)[0])
+    })
+    pkList.sort(function(item1,item2){
+        return item2.length - item1.length
+    })
     var mods = {}
 
     function calculateAdded(arr1, arr2) {
@@ -15,7 +23,6 @@ module.exports = function (opts) {
         var addedArr = []
         arr1.map(function (modName) {
             var targetList = [modName]
-            allArr.push(modName)
             if (modName.slice(-1) == '/') {
                 targetList = targetList.concat(modName.slice(0, -1), modName + 'index', modName + 'index.js')
             } else if (modName.slice(-5) == 'index') {
@@ -69,14 +76,35 @@ module.exports = function (opts) {
         return name;
     }
 
+    function handleRequires(mod){
+
+    }
+
     function handleFile(file, parentMod) {
-        var modName = path.relative(path.resolve(runCwd, '../'), file.path)
+        // 模块名
+        var modName = (function(){
+            var modName = path.relative(path.resolve('./'), file.path)
+            var index
+            for(var i=0,len=pkList.length;i<len;i++){
+                index = modName.indexOf(pkList[i]);
+                if(index+1){
+                    modName = pkList[i].match(/[\w\-\_]+[\/]{0,1}$/)[0] + modName.slice(index+pkList[i].length)
+                    break
+                }
+            }
+            if (modName.slice(-3) == '.js') modName = modName.slice(0, -3)
+            return modName
+        })()
+        // 模块实例化
         var mod
-        if (modName.slice(-3) == '.js') modName = modName.slice(0, -3)
+        parentMod.add('requires', modName)
         if (mods[modName]) {
             parentMod.add('requireObj', mods[modName])
-            return
+            var rootNode = mods[modName].fileNode
+            rootNode.find('CallExpression', 'KISSY.add').spliceParam(2, 1, '{requires:[' + arr2Str(obatinRequires(mods[modName])) + ']}')
+            return new Buffer(rootNode.stringify());
         }
+        console.log(file.path)
         parentMod.add('requireObj', mods[modName] = mod = new Mod({
             name: modName,
             path: file.path,
@@ -84,23 +112,32 @@ module.exports = function (opts) {
         }))
 
 
-        var rootNode = managejs.transfer(file.content.toString());
+        var rootNode = mod.fileNode = managejs.transfer(file.content.toString());
         var requireArr = rootNode.findById('ArrayExpression', 'requires')
         var childName;
+        var childFilePath;
         if (!requireArr.length) return new Buffer(file.content)
         for (var j = 0, ast_len = requireArr[0].astObj.elements.length; j < ast_len; j++) {
-            childName = requireArr.get(j).stringify().replace(/\'/g, '')
-            mod.add('requires', childName)
-            mod.fileNode = rootNode
-            var filePath = path.resolve(runCwd, '../', addIndexAndJsExtFromName(childName))
-            if (fs.existsSync(filePath)) handleFile({
-                path: filePath,
-                content: fs.readFileSync(filePath)
+            childName = requireArr.item(0).get(j).stringify().replace(/\'/g, '')
+
+            // 依赖形式如： "./mod"、"mod"，相对当前文件路径，解析依赖文件路径
+            if((childName.search(/^[\.]{0,2}\//)+1) || (childName.search(/^[\w\.\_\-]+(?:\.js)?$/) +1)){
+                childFilePath = path.resolve(file.path,'../', addIndexAndJsExtFromName(childName))
+
+                //其它匹配包，再根据包路径，解析依赖文件路径 todo:无匹配包时的解析，绝对路径时的解析都还没考虑
+            }else{
+                childFilePath = path.resolve(addIndexAndJsExtFromName(childName.replace(childName.match(/[\w\-\_]+/)[0],packagesMap[childName.match(/[\w\-\_]+/)[0]])))
+            }
+            if (fs.existsSync(childFilePath)) handleFile({
+                path:childFilePath,
+                content: fs.readFileSync(childFilePath)
             }, mod)
+            else{
+                mod.add('requires', childName)
+            }
         }
-        var fileNode = mod.fileNode
-        fileNode.find('CallExpression', 'KISSY.add').spliceParam(2, 1, '{requires:[' + arr2Str(obatinRequires(mod)) + ']}')
-        return new Buffer(fileNode.stringify());
+        rootNode.find('CallExpression', 'KISSY.add').spliceParam(2, 1, '{requires:[' + arr2Str(obatinRequires(mod)) + ']}')
+        return new Buffer(rootNode.stringify());
     }
 
     var rootMod = new Mod({
@@ -109,7 +146,6 @@ module.exports = function (opts) {
 
     function transport(file, encoding, callback) {
 
-        console.log(file.path)
         file.contents = handleFile({
             path: file.path,
             content: file.contents
