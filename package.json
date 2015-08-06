@@ -1,7 +1,7 @@
 {
   "name": "gulp-kissy-transport",
   "description": "提取kissy深层依赖",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": {
     "name": "sprying",
     "email": "sprying.fang@qq.com"
