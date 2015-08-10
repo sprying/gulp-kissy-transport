@@ -42,6 +42,9 @@ app/index.js
     })
 ###查看演示demo
 npm install mat -g
+
 mat
+
 http://127.0.0.1:8989/test/test.html?debug
+
 http://127.0.0.1:8989/test/test.html
