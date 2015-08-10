@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+
+<script src="//g.alicdn.com/kissy/k/1.4.7/seed.js" data-config="{combine:true}"></script>
+<script type="text/javascript">
+    var initParam = function() {
+        var param = document.location.href.match(/[\w\:\/\.]+\?([\w\=\&]+)/), obj = {}, list;
+        if (param) {
+            param = param[1];
+            list = param.split("&");
+            for(var i= 0,l=list.length;i<l;i++){
+                obj[list[i].split("=")[0]] =list[i].split("=")[1];
+            }
+        }
+        return obj;
+    }()
+    var isDebug = 'debug' in initParam
+    KISSY.config({
+        packages:{
+            "app":{
+                combine:true,
+                base:isDebug?"./":"./build/"
+            },
+            "components":{
+                combine:true,
+                base:isDebug?"./":"./build/"
+            }
+        }
+    })
+    KISSY.use('app/index')
+</script>
+</body>
+</html>

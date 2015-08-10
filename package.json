@@ -1,7 +1,7 @@
 {
   "name": "gulp-kissy-transport",
   "description": "提取kissy深层依赖",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": {
     "name": "sprying",
     "email": "sprying.fang@qq.com"
@@ -15,7 +15,8 @@
     "managejs": "0.0.2"
   },
   "devDependencies": {
-    "gulp": "3.9.0"
+    "gulp": "3.9.0",
+    "mat": "^0.1.10"
   },
   "engines": {
     "node": ">= 0.9"

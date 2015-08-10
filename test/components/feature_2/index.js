@@ -1,13 +1,23 @@
-KISSY.add('components/feature_2/',function(S){
-    //...
-},{
-    requires:['ajax','json']
-})
 KISSY.add('components/feature_2/util',function(S){
     //...
 },{
     requires: [
-        'ajax',
-        './tool'
+        'ajax'
     ]
 })
+KISSY.add('components/feature_2/base',function(S){
+    //...
+    return {
+        print:function(){
+            console.log("Year, I'm from base")
+        }
+    }
+})
+KISSY.add('components/feature_2/',function(S,Base){
+    //...
+    console.log("I'm in index.js")
+    Base.print()
+},{
+    requires:['./base','ajax','json','./tool.js','./util.js']
+})
+

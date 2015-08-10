@@ -6,11 +6,12 @@ var managejs = require('managejs');
 var Mod = require('./libs/mod.js');
 
 module.exports = function (opts) {
-    var packagesMap = {}
+    var pkMap = {}
     var pkList = []
     var mods = {};
+    // 必须加分号，不然报错
     (opts || []).forEach(function(item){
-        packagesMap[item.match(/[\w\-\_]+[\/]{0,1}$/)[0]] = path.normalize(item)
+        pkMap[item.match(/[\w\-\_]+[\/]{0,1}$/)[0]] = path.normalize(item)
         pkList.push(item.match(/\w[\s\S]*/)[0])
     })
     pkList.sort(function(item1,item2){
@@ -39,18 +40,51 @@ module.exports = function (opts) {
         return addedArr
     }
 
+    function obtainRequires(mod){
+        var path = mod.path
+
+        return obatinRequires(mod)
+        function obatinRequires(mod) {
+            var requireObj = mod.requireObj
+            var requires = mod.requires.slice(0)
+            var addedRequires = []
+            var curRequires = []
+            var subMod;
+            if(path != mod.path){
+                for(var i= 0,l=requires.length;i<l;i++){
+                    subMod = Mod.getModFromName(requires[i])
+                    if(!(subMod && subMod.path == mod.path)){
+                        curRequires.push(requires[i])
+                    }
+                }
+            }else{
+                curRequires = curRequires.concat(requires)
+            }
+            if (!Object.keys(requireObj).length)
+                return requires;
+            else if (!mod.addedRequires.length) {
+                for (var modName in requireObj) {
+                    addedRequires = calculateAdded(curRequires, obatinRequires(requireObj[modName]))
+                    curRequires = curRequires.concat(addedRequires)
+                }
+                mod.add('addedRequires',calculateAdded(mod.requires,curRequires))
+                return curRequires
+            }
+            return curRequires.concat(mod.addedRequires)
+        }
+    }
     function obatinRequires(mod) {
         var requireObj = mod.requireObj
         var requires = mod.requires.slice(0)
         var addedRequires = []
         if (!Object.keys(requireObj).length)
             return requires;
-        else if (!mod.addedRequires) {
+        else if (!mod.addedRequires.length) {
             for (var modName in requireObj) {
                 addedRequires = calculateAdded(requires, obatinRequires(requireObj[modName]))
                 requires = requires.concat(addedRequires)
             }
-            mod.addedRequires = calculateAdded(mod.requires, requires)
+            mod.add('addedRequires',calculateAdded(mod.requires, requires))
             return requires
         }
         return mod.requires.concat(mod.addedRequires)
@@ -76,15 +110,51 @@ module.exports = function (opts) {
     }
 
 
+    function obtainModNameFromAbosulte(filePath){
+        // 模块名
+        var modName = path.relative(path.resolve('./'), filePath)
+        var index
+        for(var i=0,len=pkList.length;i<len;i++){
+            index = modName.indexOf(pkList[i]);
+            if(index+1){
+                modName = pkList[i].match(/[\w\-\_]+[\/]{0,1}$/)[0] + modName.slice(index+pkList[i].length)
+                break
+            }
+        }
+        if (modName.slice(-3) == '.js') modName = modName.slice(0, -3)
+        return modName
+    }
+
+    /**
+     * 获取依赖的模块名、模块路径，模块名是相对路径时，转换成包名开头的模块名
+     * 同一文件内包含多个KISSY模块时，依赖模块的实际路径
+     * @param basePath
+     * @param reqName
+     * @returns {*}
+     */
     function obtainPathFromReq(basePath, reqName){
-        // 依赖形式如： "./mod"、"../mod"、"mod"，相对当前文件路径，解析依赖文件路径
-        if((reqName.search(/^[\.]{0,2}\//)+1) || (reqName.search(/^[\w\.\_\-]+(?:\.js)?$/) +1)){
-            return path.resolve(basePath,'../', addIndexAndJsExtFromName(reqName))
+        // 根据依赖名解析出路径
+        var reqPath
+        // 根据路径解析出的模块名
+        var nameFromPath
+        // 模块对象
+        var mod
+
+
+        // 依赖形式如： "./mod"、"../mod"，相对当前文件路径，解析依赖文件路径
+        if((reqName.search(/^[\.]{0,2}\//)+1)){
+            reqPath = path.resolve(basePath,'../', addIndexAndJsExtFromName(reqName))
 
             //其它匹配包，再根据包路径，解析依赖文件路径 todo:无匹配包时的解析，绝对路径时的解析都还没考虑
-        }else{
-            return path.resolve(addIndexAndJsExtFromName(reqName.replace(reqName.match(/[\w\-\_]+/)[0],packagesMap[reqName.match(/[\w\-\_]+/)[0]])))
+        } else {
+            reqPath = path.resolve(addIndexAndJsExtFromName(reqName.replace(reqName.match(/[\w\-\_]+/)[0],pkMap[reqName.match(/[\w\-\_]+/)[0]])))
         }
+
+        nameFromPath = obtainModNameFromAbosulte(reqPath)
+            return {
+                reqPath:reqPath,
+                modName:/^[\w\_]+/.test(reqName)?reqName:nameFromPath
+            }
 
     }
     function start(path,pMod){
@@ -96,50 +166,73 @@ module.exports = function (opts) {
         var modName
         var mod
         var reqList
-        var reqName
+        var reqModName
         var reqPath
+        var reqMod
         for(var i= 0,len= adds.length;i<len;i++){
             kissyArea = adds.item(i)
+
+            // 处理情况：if (typeof KISSY != "undefined" && KISSY.add) {
+            if(kissyArea[0].astObj.arguments.length <=1 ) continue
             modName = kissyArea.get(0).stringify().replace(/\'/g, '')
-            pMod.add('requires',modName)
-            if(mods[modName]){
-                pMod.add('requireObj',mods[modName])
-                return
+            if(mod = Mod.getModFromName(modName)){
+                (path.indexOf(modName)+1) && pMod.add('requireObj',mod)
+                continue
+            }else{
+                mod = Mod.create({
+                    name:modName,
+                    path:path
+                })
             }
-            pMod.add('requireObj',mods[modName] = mod = new Mod({
-                name:modName,
-                path:path
-            }))
+            if(path.indexOf(modName)+1){
+                pMod.add('requireObj',mod)
+            }
             reqList = kissyArea.findById('ArrayExpression','requires').item(0)
+            // 针对KISSY.add("app/index",function(){})
+            if(!reqList)    continue
             for(var j= 0,l=reqList[0].astObj.elements.length;j<l;j++){
-                reqName = reqList.get(j).stringify().replace(/\'/g, '')
-                reqPath = obtainPathFromReq(path, reqName)
+                var rtnObj = obtainPathFromReq(path, reqList.get(j).stringify().replace(/\'/g, ''))
+                reqPath = rtnObj.reqPath
+                reqModName = rtnObj.modName
+                mod.add('requires',reqModName)
+                reqMod = Mod.getModFromName(reqModName)
+                reqMod && mod.add('requireObj',reqMod)
                 if (fs.existsSync(reqPath)){
                     start(reqPath, mod)
-                } else {
-                    mod.add('requires',reqName)
                 }
             }
         }
     }
 
-    var rootMod = new Mod({
+    var rootMod = Mod.create({
         name: ''
     })
 
     function transport(file, encoding, callback) {
-
-        start(file.path,new Mod({}))
+        start(file.path,rootMod)
         var fileNode = managejs.transfer(file.contents)
         var adds = fileNode.find('CallExpression','KISSY.add')
         var kissyArea
         var modName
+        var mod
+        var isNeedChgFile = false
+        var requires
         for(var i=0,len =adds.length;i<len;i++){
             kissyArea = adds.item(i)
             modName = kissyArea.get(0).stringify().replace(/\'/g, '')
-            kissyArea.spliceParam(2, 1, '{requires:[' + arr2Str(obatinRequires(mods[modName])) + ']}')
+            // 处理情况：if (typeof KISSY != "undefined" && KISSY.add) {
+            if(kissyArea[0].astObj.arguments.length <=1 ) continue
+            modName = kissyArea.get(0).stringify().replace(/\'/g, '')
+            console.log('change mod: ' + modName)
+            mod = Mod.getModFromName(modName)
+            requires = obtainRequires(mod)
+            mod.needEdit() && kissyArea.spliceParam(2, 1, '{requires:[' + arr2Str(requires) + ']}')
+            if(mod.needEdit()){
+                isNeedChgFile = true
+            }
         }
-        file.contents = new Buffer(fileNode.stringify())
+
+        isNeedChgFile && (file.contents = new Buffer(fileNode.stringify()))
 
         callback(null, file)
     }
