@@ -12,6 +12,8 @@ KISSY.add('components/feature_2/base',function(S){
             console.log("Year, I'm from base")
         }
     }
+},{
+    requires: ['./util.js']
 })
 KISSY.add('components/feature_2/',function(S,Base){
     //...

@@ -6,6 +6,11 @@ KISSY.add('components/feature_2/base', function (S) {
             console.log('Year, I\'m from base');
         }
     };
+}, {
+    requires: [
+        'components/feature_2/util',
+        'ajax'
+    ]
 });
 KISSY.add('components/feature_2/', function (S, Base) {
     console.log('I\'m in index.js');

@@ -7,8 +7,7 @@ var Mod = require('./libs/mod.js');
 
 module.exports = function (opts) {
     var pkMap = {}
-    var pkList = []
-    var mods = {};
+    var pkList = [];
     // 必须加分号，不然报错
     (opts || []).forEach(function(item){
         pkMap[item.match(/[\w\-\_]+[\/]{0,1}$/)[0]] = path.normalize(item)
@@ -137,8 +136,6 @@ module.exports = function (opts) {
         var reqPath
         // 根据路径解析出的模块名
         var nameFromPath
-        // 模块对象
-        var mod
 
 
         // 依赖形式如： "./mod"、"../mod"，相对当前文件路径，解析依赖文件路径
@@ -151,11 +148,11 @@ module.exports = function (opts) {
         }
 
         nameFromPath = obtainModNameFromAbosulte(reqPath)
-            return {
-                reqPath:reqPath,
-                modName:/^[\w\_]+/.test(reqName)?reqName:nameFromPath
-            }
 
+        return {
+            reqPath:reqPath,
+            modName:/^[\w\_]+/.test(reqName)?reqName:nameFromPath
+        }
     }
     function start(path,pMod){
         if(!fs.existsSync(path)) return
@@ -196,6 +193,7 @@ module.exports = function (opts) {
                 reqModName = rtnObj.modName
                 mod.add('requires',reqModName)
                 reqMod = Mod.getModFromName(reqModName)
+                // 为解决单文件多kissy模块
                 reqMod && mod.add('requireObj',reqMod)
                 if (fs.existsSync(reqPath)){
                     start(reqPath, mod)

@@ -43,6 +43,7 @@ Mod.create = function(cfg){
 }
 Mod.getModFromName = function(modName){
     var targetList = [modName]
+    var mod
     if (modName.slice(-1) == '/') {
         targetList = targetList.concat(modName.slice(0, -1), modName + 'index', modName + 'index.js')
     } else if (modName.slice(-5) == 'index') {
@@ -50,7 +51,13 @@ Mod.getModFromName = function(modName){
     } else if (modName.slice(-8) == 'index.js') {
         targetList = targetList.concat(modName.slice(0, -3), modName.slice(0, -8), modName.slice(0, -9))
     }
-    return this.mods[modName] || null
+    for(var i= 0,l=targetList.length;i<l;i++){
+        mod = this.mods[targetList[i]]
+        if(mod){
+            return mod
+        }
+    }
+    return null
 }
 
 module.exports=Mod
