@@ -7,7 +7,8 @@ var Mod = require('./libs/mod.js');
 
 module.exports = function (opts) {
     var pkMap = {}
-    var pkList = [];
+    var pkList = []
+    var mods = {};
     // 必须加分号，不然报错
     (opts || []).forEach(function(item){
         pkMap[item.match(/[\w\-\_]+[\/]{0,1}$/)[0]] = path.normalize(item)
@@ -40,55 +41,50 @@ module.exports = function (opts) {
     }
 
     function obtainRequires(mod){
-        var path = mod.path
-
-        return obatinRequires(mod)
-        function obatinRequires(mod) {
-            var requireObj = mod.requireObj
-            var requires = mod.requires.slice(0)
-            var addedRequires = []
-            var curRequires = []
-            var subMod;
-            if(path != mod.path){
-                for(var i= 0,l=requires.length;i<l;i++){
-                    subMod = Mod.getModFromName(requires[i])
-                    if(!(subMod && subMod.path == mod.path)){
-                        curRequires.push(requires[i])
-                    }
-                }
-            }else{
-                curRequires = curRequires.concat(requires)
-            }
-            if (!Object.keys(requireObj).length)
-                return requires;
-            else if (!mod.addedRequires.length) {
-                for (var modName in requireObj) {
-                    addedRequires = calculateAdded(curRequires, obatinRequires(requireObj[modName]))
-                    curRequires = curRequires.concat(addedRequires)
-                }
-                mod.add('addedRequires',calculateAdded(mod.requires,curRequires))
-                return curRequires
-            }
-            return curRequires.concat(mod.addedRequires)
-        }
-    }
-    function obatinRequires(mod) {
         var requireObj = mod.requireObj
         var requires = mod.requires.slice(0)
         var addedRequires = []
+        var subMod
+        var adds;
         if (!Object.keys(requireObj).length)
-            return requires;
-        else if (!mod.addedRequires.length) {
+            return requires
+        else if (!mod.addedRequires) {
             for (var modName in requireObj) {
-                addedRequires = calculateAdded(requires, obatinRequires(requireObj[modName]))
+                addedRequires = calculateAdded(requires, obtainRequires(requireObj[modName]))
                 requires = requires.concat(addedRequires)
             }
-            mod.add('addedRequires',calculateAdded(mod.requires, requires))
-            return requires
+            adds = calculateAdded(mod.requires,requires)
+            addedRequires = []
+            for(var i= 0,l=adds.length;i<l;i++){
+                subMod = Mod.getModFromName(adds[i])
+                if(!subMod  ||  (subMod.path == mod.path) || !pathInNames(subMod.path,mod.requires)){
+                    addedRequires.push(adds[i])
+                }
+            }
+            mod.add('addedRequires',addedRequires)
+            return mod.requires.concat(addedRequires)
         }
-        return mod.requires.concat(mod.addedRequires)
+        return requires.concat(mod.addedRequires)
     }
 
+    function pathInNames(filePath,names){
+        var reqName
+        var reqPath
+        for(var i=0,l=names.length;i<l;i++){
+            reqName = names[i]
+            if((reqName.search(/^[\.]{0,2}\//)+1)){
+                reqPath = path.resolve(basePath,'../', addIndexAndJsExtFromName(reqName))
+
+                //其它匹配包，再根据包路径，解析依赖文件路径 todo:无匹配包时的解析，绝对路径时的解析都还没考虑
+            } else {
+                reqPath = path.resolve(addIndexAndJsExtFromName(reqName.replace(reqName.match(/[\w\-\_]+/)[0],pkMap[reqName.match(/[\w\-\_]+/)[0]])))
+            }
+            if(filePath == reqPath){
+                return true
+            }
+        }
+        return false
+    }
     function arr2Str(arr) {
         var rtnStr = [];
         arr.map(function (item) {
@@ -154,7 +150,7 @@ module.exports = function (opts) {
             modName:/^[\w\_]+/.test(reqName)?reqName:nameFromPath
         }
     }
-    function start(path,pMod){
+    function parseFile(path,pMod){
         if(!fs.existsSync(path)) return
         var fileContent = fs.readFileSync(path)
         var rootNode = managejs.transfer(fileContent)
@@ -172,6 +168,7 @@ module.exports = function (opts) {
             // 处理情况：if (typeof KISSY != "undefined" && KISSY.add) {
             if(kissyArea[0].astObj.arguments.length <=1 ) continue
             modName = kissyArea.get(0).stringify().replace(/\'/g, '')
+            // 已经创建过此模块
             if(mod = Mod.getModFromName(modName)){
                 (path.indexOf(modName)+1) && pMod.add('requireObj',mod)
                 continue
@@ -181,6 +178,7 @@ module.exports = function (opts) {
                     path:path
                 })
             }
+            // 只会对名字和文件路径一致的模块进行添加
             if(path.indexOf(modName)+1){
                 pMod.add('requireObj',mod)
             }
@@ -196,7 +194,7 @@ module.exports = function (opts) {
                 // 为解决单文件多kissy模块
                 reqMod && mod.add('requireObj',reqMod)
                 if (fs.existsSync(reqPath)){
-                    start(reqPath, mod)
+                    parseFile(reqPath, mod)
                 }
             }
         }
@@ -207,9 +205,11 @@ module.exports = function (opts) {
     })
 
     function transport(file, encoding, callback) {
-        start(file.path,rootMod)
+        // 递归分析生成kissy模块对象
+        parseFile(file.path,rootMod)
         var fileNode = managejs.transfer(file.contents)
         var adds = fileNode.find('CallExpression','KISSY.add')
+        var stash = []
         var kissyArea
         var modName
         var mod
@@ -217,20 +217,32 @@ module.exports = function (opts) {
         var requires
         for(var i=0,len =adds.length;i<len;i++){
             kissyArea = adds.item(i)
-            modName = kissyArea.get(0).stringify().replace(/\'/g, '')
             // 处理情况：if (typeof KISSY != "undefined" && KISSY.add) {
             if(kissyArea[0].astObj.arguments.length <=1 ) continue
             modName = kissyArea.get(0).stringify().replace(/\'/g, '')
-            console.log('change mod: ' + modName)
+            //console.log('change mod: ' + modName)
             mod = Mod.getModFromName(modName)
+            // 获取模块的所有依赖
             requires = obtainRequires(mod)
-            mod.needEdit() && kissyArea.spliceParam(2, 1, '{requires:[' + arr2Str(requires) + ']}')
+            // 筛到队列中，后续有需要才执行
+            stash.push((function(requires,kissyArea){
+                return function(){
+                    kissyArea.spliceParam(2, 1, '{requires:[' + arr2Str(requires) + ']}')
+                }
+            })(requires,kissyArea))
+            // 只要文件内模块有一个深层依赖，标志为需重写
             if(mod.needEdit()){
                 isNeedChgFile = true
             }
         }
 
-        isNeedChgFile && (file.contents = new Buffer(fileNode.stringify()))
+        // 文件内的模块有深层依赖其它文件的模块时
+        if(isNeedChgFile){
+            stash.forEach(function(item){
+                item()
+            })
+            file.contents = new Buffer(fileNode.stringify())
+        }
 
         callback(null, file)
     }

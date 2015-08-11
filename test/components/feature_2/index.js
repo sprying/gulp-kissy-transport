@@ -20,6 +20,6 @@ KISSY.add('components/feature_2/',function(S,Base){
     console.log("I'm in index.js")
     Base.print()
 },{
-    requires:['./base','ajax','json','./tool.js','./util.js']
+    requires:['./base','json','./tool.js']
 })
 

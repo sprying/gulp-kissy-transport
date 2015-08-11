@@ -5,9 +5,9 @@ KISSY.add('components/feature/', function (S, io) {
         'components/feature/util',
         'node',
         'components/feature_2/index',
-        'ajax',
         'json',
         'components/feature_2/tool',
+        'ajax',
         'dd',
         'resizable'
     ]

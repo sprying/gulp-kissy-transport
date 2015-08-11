@@ -5,8 +5,7 @@ function Mod(cfg){
         content : '',
         path : '',
         requires : [],
-        requireObj : {},
-        addedRequires:[]
+        requireObj : {}
     },cfg);
 }
 Mod.prototype.add = function(type,value){
@@ -18,7 +17,7 @@ Mod.prototype.add = function(type,value){
             this.requireObj[value.get('name')] = value
             break;
         case 'addedRequires':
-            this.addedRequires = this.addedRequires.concat(value)
+            this.addedRequires = (this.addedRequires || []).concat(value)
     }
 }
 Mod.prototype.get = function(type){
@@ -35,7 +34,7 @@ Mod.prototype.get = function(type){
     }
 }
 Mod.prototype.needEdit = function(){
-    return !!this.addedRequires.length
+    return !!this.addedRequires && !!this.addedRequires.length
 }
 Mod.mods = {}
 Mod.create = function(cfg){

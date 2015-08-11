@@ -18,10 +18,10 @@ KISSY.add('components/feature_2/', function (S, Base) {
 }, {
     requires: [
         'components/feature_2/base',
-        'ajax',
         'json',
         'components/feature_2/tool',
         'components/feature_2/util',
+        'ajax',
         'dd',
         'resizable'
     ]
