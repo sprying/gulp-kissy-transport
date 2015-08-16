@@ -107,7 +107,8 @@ module.exports = function (opts) {
 
     function obtainModNameFromAbosulte(filePath){
         // 模块名
-        var modName = path.relative(path.resolve('./'), filePath)
+        // window系统 下文件路径 c:\workspace
+        var modName = path.relative(path.resolve('./'), filePath).replace(/\\/g,'/')
         var index
         for(var i=0,len=pkList.length;i<len;i++){
             index = modName.indexOf(pkList[i]);
@@ -179,7 +180,8 @@ module.exports = function (opts) {
                 })
             }
             // 只会对名字和文件路径一致的模块进行添加
-            if(path.indexOf(modName)+1){
+            // window下文件路径 c:\workspace
+            if(path.replace(/\\/g,'/').indexOf(modName)+1){
                 pMod.add('requireObj',mod)
             }
             reqList = kissyArea.findById('ArrayExpression','requires').item(0)
