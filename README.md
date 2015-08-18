@@ -1,5 +1,4 @@
-# gulp-kissy-transport
-
+# gulp-kissy-transport [![Build Status](http://img.shields.io/travis/sprying/gulp-kissy-transport.svg)](https://travis-ci.org/sprying/gulp-kissy-transport.svg)
 提取kissy深层依赖
 
 ###提取前
