@@ -1,7 +1,7 @@
 {
   "name": "gulp-kissy-transport",
   "description": "提取kissy深层依赖",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "author": {
     "name": "sprying",
     "email": "sprying.fang@qq.com"
@@ -31,11 +31,7 @@
     "type": "git",
     "url": "git+https://github.com/sprying/gulp-kissy-transport.git"
   },
-  "readme": "# gulp-kissy-transport\n\n提取kissy深层依赖\n\n提取前\napp/index.js\n\n    KISSY.add('app/index',function(S,Node,Feature){\n      //...\n    },{\n      requires:['node','components/feature/']\n    })\n\ncomponents/feature/index.js\n\n    KISSY.add('components/feature/',function(S,io){\n      //...\n    },{\n      requires:['io']\n    })\n\n提取后\napp/index.js\n\n    KISSY.add('app/index',function(S,Node,Feature){\n      //...\n    },{\n      requires:['node','components/feature/','io']\n    })\n",
-  "readmeFilename": "README.md",
-  "gitHead": "84fe5f10fcc457325aaa823ce2cd85a4a0d7fe6e",
-  "_id": "gulp-kissy-transport@0.0.3",
-  "scripts": {},
-  "_shasum": "a4621597ed6ecf8b86f7136d434f0d97e1f19001",
-  "_from": "gulp-kissy-transport@*"
+  "scripts": {
+    "test":"mocha"
+  }
 }
