@@ -34,5 +34,11 @@
   },
   "scripts": {
     "test":"mocha"
+  },
+  "config":{
+    "blanket": {
+      "pattern": ["lib/mod.js","index.js"],
+      "data-cover-never": [ "node_modules"]
+    }
   }
 }

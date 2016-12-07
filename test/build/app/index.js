@@ -4,7 +4,7 @@ KISSY.add('app/index', function (S, Node, Feature) {
     requires: [
         'node',
         'components/feature/',
-        'components/feature_3/',
+        'components/feature_3/index.js',
         'io',
         'components/feature/util',
         'components/feature_2/index',
