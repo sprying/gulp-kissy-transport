@@ -10,9 +10,9 @@ KISSY.add('app/index', function (S, Node, Feature) {
         'components/feature_2/index',
         'json',
         'components/feature_2/tool',
+        'ajax',
         'dd',
         'resizable',
-        'ajax',
         'xtemplate'
     ]
 });

@@ -8,10 +8,10 @@ KISSY.add('components/feature_2/', function (S, Base) {
         'components/feature_2/base',
         'json',
         'components/feature_2/tool',
-        'dd',
-        'resizable',
         'components/feature_2/util',
-        'ajax'
+        'ajax',
+        'dd',
+        'resizable'
     ]
 });
 KISSY.add('components/feature_2/base', function (S) {

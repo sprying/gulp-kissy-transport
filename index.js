@@ -9,6 +9,45 @@ var util = require('./lib/util')
 var rootMod = Mod.create({
     name: ''
 })
+
+var parsedMap = {}
+
+function arr2Str(arr) {
+    var rtnStr = [];
+    arr.map(function (item) {
+        rtnStr.push('\'' + item + '\'')
+    })
+    return rtnStr.join(',')
+}
+
+/**
+ * 计算出arr2在arr1中没有的元素，然后组成数组返回
+ * @param arr1
+ * @param arr2
+ * @returns {Array}
+ */
+function calculateAdded(arr1, arr2) {
+    var allArr = []
+    var addedArr = []
+    arr1.forEach(function (modName) {
+        var targetList = [modName]
+        if (modName.slice(-1) == '/') {
+            targetList = targetList.concat(modName.slice(0, -1), modName + 'index', modName + 'index.js')
+        } else if (modName.slice(-5) == 'index') {
+            targetList = targetList.concat(modName.slice(0, -5), modName.slice(0, -6), modName + '.js')
+        } else if (modName.slice(-8) == 'index.js') {
+            targetList = targetList.concat(modName.slice(0, -3), modName.slice(0, -8), modName.slice(0, -9))
+        }
+        allArr = allArr.concat(targetList)
+    })
+    arr2.forEach(function (modName) {
+        if (!(allArr.indexOf(modName) + 1)) {
+            addedArr.push(modName)
+        }
+    })
+    return addedArr
+}
+
 /**
  * 原理
  * 从一个文件开始，分析它的模块、依赖的模块、依赖的文件，直到找不到文件的模块依赖了。期间生成各个模块实例，依赖关联关系。
@@ -34,92 +73,6 @@ exports.transport = function (packagePaths) {
     })
 
     /**
-     * 计算出arr2在arr1中没有的元素，然后组成数组返回
-     * @param arr1
-     * @param arr2
-     * @returns {Array}
-     */
-    function calculateAdded(arr1, arr2) {
-        var allArr = []
-        var addedArr = []
-        arr1.forEach(function (modName) {
-            var targetList = [modName]
-            if (modName.slice(-1) == '/') {
-                targetList = targetList.concat(modName.slice(0, -1), modName + 'index', modName + 'index.js')
-            } else if (modName.slice(-5) == 'index') {
-                targetList = targetList.concat(modName.slice(0, -5), modName.slice(0, -6), modName + '.js')
-            } else if (modName.slice(-8) == 'index.js') {
-                targetList = targetList.concat(modName.slice(0, -3), modName.slice(0, -8), modName.slice(0, -9))
-            }
-            allArr = allArr.concat(targetList)
-        })
-        arr2.forEach(function (modName) {
-            if (!(allArr.indexOf(modName) + 1)) {
-                addedArr.push(modName)
-            }
-        })
-        return addedArr
-    }
-
-    /**
-     * 获取一个模块的所有依赖
-     * @param mod
-     * @returns {Array.<T>}
-     */
-    function obtainRequires(mod) {
-        var reqRefs = mod.reqRefs
-        var requires = mod.requires.slice(0)
-        var addedRequires = []
-        var subMod
-        var adds;
-        if (!reqRefs.length) {
-            console.log('mod latest requires: ')
-            console.log(requires.concat(mod.addedRequires))
-        } else if (!mod.addedRequires) {
-            reqRefs.forEach(function (reqMod) {
-                console.log('====analyze the refer to ' + reqMod.name + '    ====')
-                addedRequires = calculateAdded(requires, obtainRequires(reqMod))
-                console.log('====analyze the refer to ' + reqMod.name + ' end====')
-                console.log()
-                requires = requires.concat(addedRequires)
-            })
-            adds = calculateAdded(mod.requires, requires)
-
-            // 为什么再重新校验下哪些嵌套依赖需要添加，当初这样写的原因忘了......
-            addedRequires = []
-
-            console.log('mod.name: ' + mod.name)
-            // console.log('mod.path: ' + mod.path)
-            console.log('mod requires: ' + mod.requires)
-            console.log('mod adds: ' + adds)
-
-            for (var i = 0, l = adds.length; i < l; i++) {
-                console.log('---one dependency of mod begins analysis---')
-                subMod = Mod.getModFromName(adds[i])
-
-                console.log('subMod requireName: ' + adds[i])
-                console.log('subMod.path: ' + (!!subMod ? subMod.path : ''))
-
-                // 第一种，是线上模块；第二种，是依赖和被依赖的模块在同一文件里；第三种，如果依赖的模块所在文件，已经被依赖了
-                subMod && console.log('**' + subMod.isLessor + '**')
-                if (!subMod || (subMod.path == mod.path) || (!subMod.isLessor && !pathInNames(subMod.path, mod.requires))) {
-                    addedRequires.push(adds[i])
-                    console.log('mod requires add one: ' + adds[i])
-                }
-            }
-            mod.add('addedRequires', addedRequires)
-            console.log('------analysis end--------')
-            console.log('mod.addedRequires: ')
-            console.log(addedRequires)
-            console.log('mod latest deps: ')
-        } else {
-            console.log('=====quickly analyze the refer to ' + mod.name + '=====')
-        }
-        console.log(mod.requires.concat(mod.addedRequires))
-        return mod.requires.concat(addedRequires)
-    }
-
-    /**
      * 数组names各个元素，是模块名字，是否有名字拼接成的路径，与filePath相等
      * @param filePath
      * @param names
@@ -143,14 +96,6 @@ exports.transport = function (packagePaths) {
             }
         }
         return false
-    }
-
-    function arr2Str(arr) {
-        var rtnStr = [];
-        arr.map(function (item) {
-            rtnStr.push('\'' + item + '\'')
-        })
-        return rtnStr.join(',')
     }
 
 
@@ -203,24 +148,90 @@ exports.transport = function (packagePaths) {
     }
 
     /**
+     * 获取一个模块的所有依赖
+     * @param mod
+     * @returns {Array.<T>}
+     */
+    function obtainRequires(mod) {
+        if (mod.hasChecked) {
+            console.log('=====quickly analyze the refer to ' + mod.name + '=====')
+            console.log('mod latest reqs: ')
+            console.log(mod.allReqs)
+            return mod.allReqs
+        }
+
+        var reqRefs = mod.reqRefs
+        var reqs = mod.reqs.slice(0)
+        var addReqs = []
+        var subMod
+        var adds = [];
+
+
+        if (reqRefs.length) {
+            reqRefs.forEach(function (reqMod) {
+                console.log('====analyze the refer to ' + reqMod.name + '    ====')
+                adds = calculateAdded(reqs, obtainRequires(reqMod))
+                console.log('====analyze the refer to ' + reqMod.name + ' end====')
+                console.log()
+                reqs = reqs.concat(adds)
+            })
+            adds = calculateAdded(mod.reqs, reqs)
+
+
+            console.log('mod.name: ' + mod.name)
+            // console.log('mod.path: ' + mod.path)
+            console.log('mod reqs: ' + mod.reqs)
+            console.log('mod adds: ' + adds)
+
+            adds.forEach(function (add, i) {
+                console.log('---one dependency of mod begins analysis---')
+                var subMod = Mod.getModFromName(add)
+
+                console.log('subMod requireName: ' + add)
+                console.log('subMod.path: ' + (!!subMod ? subMod.path : ''))
+
+                // 第一种，是线上模块，或者书找不到的模块；第二种，是依赖和被依赖的模块在同一文件里；第三种，依赖的是一个文件中有多模块的副模块
+                if (!subMod || (subMod.path == mod.path) || subMod.isMain) {
+                    addReqs.push(adds[i])
+                    console.log('mod reqs add one: ' + add)
+                }
+            })
+            mod.add('addReqs', addReqs)
+            console.log('------analysis end--------')
+            console.log('mod.addReqs: ')
+            console.log(addReqs)
+            console.log('mod latest deps: ')
+        }
+        mod.hasChecked = true
+        var allReqs = mod.allReqs = mod.reqs.concat(mod.addReqs)
+        console.log(allReqs)
+        return allReqs
+    }
+
+    /**
      * 一层层解析文件
      * @param path
      * @param pMod
      */
-    function parseFile(path, pMod) {
-        if (!fs.existsSync(path)) return
+    function parseFile(filePath, pMod) {
+        if (!fs.existsSync(filePath)) return
 
-        var fileContent = fs.readFileSync(path)
+        // console.log('===begin to parse path: ' + path.relative(process.cwd(), filePath) + '===')
+
+        var fileContent = fs.readFileSync(filePath)
         var rootNode = managejs.transfer(fileContent)
         var adds = rootNode.find('CallExpression', 'KISSY.add')
         var kissyArea
         var modName
         var mod
         var reqList
-        var reqModName
-        var reqPath
         var reqMod
         var multipleMods = []
+
+        if (parsedMap[filePath]) {
+            return
+        }
+        parsedMap[filePath] = true
 
         // 一个文件里有多个kissy模块
         for (var i = 0, len = adds.length; i < len; i++) {
@@ -229,40 +240,48 @@ exports.transport = function (packagePaths) {
             // 处理情况：if (typeof KISSY != "undefined" && KISSY.add) {
             if (kissyArea[0].astObj.arguments.length <= 1) continue
             modName = kissyArea.get(0).stringify().replace(/\'/g, '')
-            // 已经创建过此模块，包括一个文件多模块情况，不可能是其它文件引用多模块文件里的非根模块
             mod = Mod.getModFromName(modName)
-            if (!mod) {
-                console.log('modName: ' + modName)
-                console.log('path: ' + path)
-                mod = Mod.create({
-                    name: modName,
-                    path: path
-                })
-
-                reqList = kissyArea.findById('ArrayExpression', 'requires').item(0)
-
-                // 针对KISSY.add("app/index",function(){})
-                if (!reqList)    continue
-
-                for (var j = 0, l = reqList[0].astObj.elements.length; j < l; j++) {
-                    var rtnObj = obtainModInfoFromReq(path, reqList.get(j).stringify().replace(/\'/g, ''))
-                    reqPath = rtnObj.reqPath
-                    reqModName = rtnObj.modName
-                    mod.add('requires', reqModName)
-                    reqMod = Mod.getModFromName(reqModName)
-
-                    if (reqMod) {
-                        mod.add('reqRefs', reqMod) // 一个文件里多模块内部关系在这里指定，要依赖的模块写在前面
-                    } else if (fs.existsSync(reqPath)) {
-                        parseFile(reqPath, mod)
-                    } else {
-                        multipleMods.push([mod, reqModName])
-                    }
-                }
+            if (mod) {
+                console.log('**repeat use the same name ' + modName + ' @ ' + path.relative(process.cwd(), filePath) + '**')
+                console.log('**conflict with the file: ' + path.relative(process.cwd(), mod.path) + '**')
+                continue
             }
+            var isMain = util.nameInPath(modName, filePath)
+            // console.log('->begin modName: ' + modName)
+            mod = Mod.create({
+                name: modName,
+                path: filePath,
+                isMain: isMain
+            })
+
+            reqList = kissyArea.findById('ArrayExpression', 'requires').item(0)
+
+            // 针对KISSY.add("app/index",function(){})
+            if (!reqList)    continue
+
+            for (var j = 0, l = reqList[0].astObj.elements.length; j < l; j++) {
+                var originReqName = reqList.get(j).stringify().replace(/\'/g, '')
+                var rtnObj = obtainModInfoFromReq(filePath, originReqName)
+                var reqPath = rtnObj.reqPath
+                var reqModName = rtnObj.modName
+
+                // console.log('require mod: ' + reqModName)
+                mod.add('reqs', reqModName)
+                mod.add('oriReqs', originReqName)
+
+                reqMod = Mod.getModFromName(reqModName)
+
+                if (!reqMod && fs.existsSync(reqPath)) {
+                    parseFile(reqPath)
+                }
+                multipleMods.push([mod, reqModName])
+            }
+            console.log('[reqs]' + modName + ':' + mod.reqs)
+
             // 只会对名字和文件路径一致的模块进行添加
             // window下文件路径 c:\workspace
-            if (path.replace(/\\/g, '/').indexOf(modName) + 1) {
+            if (pMod && filePath.replace(/\\/g, '/').indexOf(modName) + 1) {
+                console.log('rootMod reqRefs: ' + mod.name)
                 pMod.add('reqRefs', mod)
             }
         }
@@ -270,9 +289,12 @@ exports.transport = function (packagePaths) {
         multipleMods.forEach(function (cache) {
             reqMod = Mod.getModFromName(cache[1])
             if (reqMod) {
-                cache[0].add('reqRefs', reqMod) // 一个文件里多模块内部关系在这里指定，要依赖的模块写在前面，这里处理依赖没写在前面的顺序
+                cache[0].add('reqRefs', reqMod)
+                console.log('[reqRefs]' + cache[0]['name'] + ' : ' + cache[1])
             }
         })
+        // console.log('===stop to parse path: ' + path.relative(process.cwd(), filePath) + '===')
+        console.log()
     }
 
 
@@ -295,16 +317,15 @@ exports.transport = function (packagePaths) {
             if (kissyArea[0].astObj.arguments.length <= 1) continue
 
             modName = kissyArea.get(0).stringify().replace(/\'/g, '')
-            //console.log('change mod: ' + modName)
-            mod = Mod.getModFromName(modName)
 
             // 一个文件多模块，只处理其中一个对外模块
             if (!util.nameInPath(modName, file.path))    continue
 
+            mod = Mod.getModFromName(modName)
+
             console.log('===begin analyze ' + modName + '===')
             // 获取模块的所有依赖
             requires = obtainRequires(mod)
-
             console.log('=== end  analyze ' + modName + '===')
             console.log()
             console.log()
