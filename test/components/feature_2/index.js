@@ -5,6 +5,14 @@ KISSY.add('components/feature_2/util',function(S){
         'ajax'
     ]
 })
+KISSY.add('components/feature_2/',function(S,Base){
+    //...
+    console.log("I'm in index.js")
+    Base.print()
+},{
+    requires:['./base','json','./tool.js']
+})
+
 KISSY.add('components/feature_2/base',function(S){
     //...
     return {
@@ -15,11 +23,3 @@ KISSY.add('components/feature_2/base',function(S){
 },{
     requires: ['./util.js']
 })
-KISSY.add('components/feature_2/',function(S,Base){
-    //...
-    console.log("I'm in index.js")
-    Base.print()
-},{
-    requires:['./base','json','./tool.js']
-})
-

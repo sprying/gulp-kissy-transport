@@ -47,6 +47,6 @@ npm install mat -g
 
 mat
 
-http://127.0.0.1:8989/test/test.html?debug
+http://127.0.0.1:8989/examples/test.html?debug
 
-http://127.0.0.1:8989/test/test.html
+http://127.0.0.1:8989/examples/test.html

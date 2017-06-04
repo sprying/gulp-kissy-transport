@@ -6,8 +6,8 @@ KISSY.add('components/feature/util', function (S) {
         'components/feature_2/index',
         'json',
         'components/feature_2/tool',
-        'ajax',
         'dd',
-        'resizable'
+        'resizable',
+        'ajax'
     ]
 });
