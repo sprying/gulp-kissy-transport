@@ -5,9 +5,9 @@ KISSY.add('components/feature_2/', function (S, Base) {
     Base.print();
 }, {
     requires: [
-        'components/feature_2/base',
+        './base',
         'json',
-        'components/feature_2/tool',
+        './tool.js',
         'components/feature_2/util',
         'ajax',
         'dd',

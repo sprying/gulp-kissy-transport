@@ -3,7 +3,7 @@ KISSY.add('components/feature/util', function (S) {
     requires: [
         'node',
         'io',
-        'components/feature_2/index',
+        '../feature_2/',
         'json',
         'components/feature_2/tool',
         'ajax',

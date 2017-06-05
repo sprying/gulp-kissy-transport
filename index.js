@@ -56,7 +56,7 @@ function calculateAdded(arr1, arr2) {
  **/
 exports.transport = function (packagePaths) {
     if (typeof packagePaths === 'string') packagePaths = [packagePaths]
-    if (!packagePaths.length) {
+    if (!packagePaths || !packagePaths.length) {
         console.log('需要配置包所在的路径')
         return
     }
@@ -203,8 +203,9 @@ exports.transport = function (packagePaths) {
             console.log('mod latest deps: ')
         }
         mod.hasChecked = true
+        var allOReqs = mod.allOReqs = mod.oriReqs.concat(mod.addReqs)
+        console.log(allOReqs)
         var allReqs = mod.allReqs = mod.reqs.concat(mod.addReqs)
-        console.log(allReqs)
         return allReqs
     }
 
@@ -229,6 +230,10 @@ exports.transport = function (packagePaths) {
         var multipleMods = []
 
         if (parsedMap[filePath]) {
+            if (pMod && filePath.replace(/\\/g, '/').indexOf(modName) + 1) {
+                console.log('rootMod reqRefs: ' + mod.name)
+                pMod.add('reqRefs', mod)
+            }
             return
         }
         parsedMap[filePath] = true
@@ -242,8 +247,8 @@ exports.transport = function (packagePaths) {
             modName = kissyArea.get(0).stringify().replace(/\'/g, '')
             mod = Mod.getModFromName(modName)
             if (mod) {
-                console.log('**repeat use the same name ' + modName + ' @ ' + path.relative(process.cwd(), filePath) + '**')
-                console.log('**conflict with the file: ' + path.relative(process.cwd(), mod.path) + '**')
+                console.warn('**repeat use the same name ' + modName + ' @ ' + path.relative(process.cwd(), filePath) + '**')
+                console.warn('**conflict with the file: ' + path.relative(process.cwd(), mod.path) + '**')
                 continue
             }
             var isMain = util.nameInPath(modName, filePath)
@@ -269,6 +274,7 @@ exports.transport = function (packagePaths) {
                 mod.add('reqs', reqModName)
                 mod.add('oriReqs', originReqName)
 
+                console.log('**' + reqPath + '**')
                 reqMod = Mod.getModFromName(reqModName)
 
                 if (!reqMod && fs.existsSync(reqPath)) {
@@ -299,6 +305,9 @@ exports.transport = function (packagePaths) {
 
 
     function transport(file, encoding, callback) {
+        var _log = console.log
+        console.log = function(){}
+
         // 递归生成kissy模块对象
         parseFile(file.path, rootMod)
 
@@ -325,32 +334,26 @@ exports.transport = function (packagePaths) {
 
             console.log('===begin analyze ' + modName + '===')
             // 获取模块的所有依赖
-            requires = obtainRequires(mod)
+            obtainRequires(mod)
+            requires = mod.allOReqs
             console.log('=== end  analyze ' + modName + '===')
             console.log()
             console.log()
 
-            // 筛到队列中，后续有需要才执行
-            stash.push((function (requires, kissyArea) {
-                return function () {
-                    kissyArea.spliceParam(2, 1, '{requires:[' + arr2Str(requires) + ']}')
-                }
-            })(requires, kissyArea))
-
-            // 只要文件内模块有一个深层依赖，标志为需重写
             if (mod.needEdit()) {
                 isNeedChgFile = true
+                kissyArea.spliceParam(2, 1, '{requires:[' + arr2Str(requires) + ']}')
             }
+
+            break
         }
 
         // 文件内的模块有深层依赖其它文件的模块时
         if (isNeedChgFile) {
-            stash.forEach(function (item) {
-                item()
-            })
             file.contents = new Buffer(fileNode.stringify())
         }
 
+        console.log = _log
         callback(null, file)
     }
 
