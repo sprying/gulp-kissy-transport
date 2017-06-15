@@ -59,6 +59,8 @@ function obtainModInfoFromReq(basePath, reqName, relativeModName) {
     var modName = ''
 
 
+    reqName = reqName.replace(/\//g, path.sep)
+
     // 匹配如： "./mod"、"../mod"，解析出文件路径
     if (/^[.]{1,2}\//.test(reqName)) {
         realPath = path.resolve(basePath, '../', addIndexAndJsExtFromName(reqName))
@@ -116,7 +118,7 @@ function obtainModNameFromAbosulte(filePath, relModName) {
         }
 
     }
-    modName = filePath.replace(pkgPath, pkgName)
+    modName = filePath.replace(pkgPath, pkgName).replace(/\\/, '/')
 
     if (modName.slice(-3) == '.js') modName = modName.slice(0, -3)
     return modName
@@ -169,7 +171,7 @@ function isEntry(modName, filePath){
     var tag = false
     _.forEach(pkgMap, function(pkgPath, pkgName){
         if(_.startsWith(filePath, pkgPath)){
-            var aModName = filePath.replace(pkgPath, pkgName)
+            var aModName = filePath.replace(pkgPath, pkgName).replace(/\\/g, '/')
             if(addIndexAndJsExtFromName(modName) == aModName){
                 tag = true
                 return false
