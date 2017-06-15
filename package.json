@@ -10,9 +10,9 @@
     "url": "https://github.com/sprying/gulp-kissy-transport/issues"
   },
   "dependencies": {
-    "through2": ">=0.6.1 <1.0.0-0",
-    "extend": "~3.0.0",
-    "managejs": "0.0.2"
+    "lodash": "^4.17.4",
+    "managejs": "0.0.2",
+    "through2": ">=0.6.1 <1.0.0-0"
   },
   "devDependencies": {
     "gulp": "3.9.0",
@@ -33,12 +33,17 @@
     "url": "git+https://github.com/sprying/gulp-kissy-transport.git"
   },
   "scripts": {
-    "test":"mocha"
+    "test": "mocha"
   },
-  "config":{
+  "config": {
     "blanket": {
-      "pattern": ["lib/mod.js","index.js"],
-      "data-cover-never": [ "node_modules"]
+      "pattern": [
+        "lib/mod.js",
+        "index.js"
+      ],
+      "data-cover-never": [
+        "node_modules"
+      ]
     }
   }
 }

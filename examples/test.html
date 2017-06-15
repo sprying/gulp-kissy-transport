@@ -29,6 +29,10 @@
             "components":{
                 combine:true,
                 base:isDebug?"../test":"../test/build/"
+            },
+            "common": {
+                base:isDebug?"../test/app":"../test/build/app",
+                ignorePackageNameInUri: true,
             }
         }
     })
