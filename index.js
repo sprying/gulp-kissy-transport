@@ -59,10 +59,10 @@ function obtainModInfoFromReq(basePath, reqName, relativeModName) {
     var modName = ''
 
 
-    reqName = reqName.replace(/\//g, path.sep)
 
     // 匹配如： "./mod"、"../mod"，解析出文件路径
     if (/^[.]{1,2}\//.test(reqName)) {
+        reqName = reqName.replace(/\//g, path.sep)
         realPath = path.resolve(basePath, '../', addIndexAndJsExtFromName(reqName))
         modName = obtainModNameFromAbosulte(realPath, relativeModName) || reqName
 
@@ -118,7 +118,7 @@ function obtainModNameFromAbosulte(filePath, relModName) {
         }
 
     }
-    modName = filePath.replace(pkgPath, pkgName).replace(/\\/, '/')
+    modName = filePath.replace(pkgPath, pkgName).replace(/\\/g, '/')
 
     if (modName.slice(-3) == '.js') modName = modName.slice(0, -3)
     return modName
