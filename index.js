@@ -62,7 +62,7 @@ function obtainModInfoFromReq(basePath, reqName, relativeModName) {
 
     // 匹配如： "./mod"、"../mod"，解析出文件路径
     if (/^[.]{1,2}\//.test(reqName)) {
-        reqName = reqName.replace(/\//g, path.sep)
+        // reqName = reqName.replace(/\//g, path.sep)
         realPath = path.resolve(basePath, '..' + path.sep , addIndexAndJsExtFromName(reqName))
         modName = obtainModNameFromAbosulte(realPath, relativeModName) || reqName
 
